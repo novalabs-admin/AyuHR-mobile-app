@@ -87,7 +87,7 @@ class AppDrawer extends StatelessWidget {
                       ),
                       onTap: () {
                         Navigator.pop(context);
-                        context.push('/profile');
+                        context.go('/profile');
                       },
                     ),
                     ListTile(

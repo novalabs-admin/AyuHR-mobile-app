@@ -1,15 +1,10 @@
-import 'package:curved_labeled_navigation_bar/curved_navigation_bar.dart';
-import 'package:curved_labeled_navigation_bar/curved_navigation_bar_item.dart';
-import 'package:erp_hr/core/utils/colors.dart';
 import 'package:erp_hr/core/utils/constants.dart';
 import 'package:erp_hr/features/login/presentation/blocs/auth_cubit.dart';
 import 'package:erp_hr/features/login/presentation/blocs/auth_state.dart';
-import 'package:erp_hr/shared/widget/app_confirm_dialog.dart';
 import 'package:erp_hr/shared/widget/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-
 
 class MainScaffold extends StatelessWidget {
   const MainScaffold({
@@ -22,130 +17,144 @@ class MainScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color getItemColor(int index) {
-      if (navigationShell.currentIndex == index) {
-        return AppColor.primary ;
-      }
-      return Theme.of(context).brightness == Brightness.light
-          ? Colors.grey.shade800
-          : Colors.grey.shade400;
-    }
 
     return Scaffold(
       key: mainScaffoldKey,
       extendBody: true,
       drawer: const AppDrawer(),
       body: navigationShell,
-      bottomNavigationBar: CurvedNavigationBar(
-        index: navigationShell.currentIndex,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        color: Theme.of(context).colorScheme.surface,
-        height: 60,
-        animationDuration: const Duration(milliseconds: 300),
-        items: [
-          CurvedNavigationBarItem(
-            child: Icon(Icons.home_outlined, color: getItemColor(0)),
-            label: 'Dashboard',
-            labelStyle: TextStyle(
-              color: getItemColor(0),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  context: context,
+                  index: 0,
+                  label: 'Home',
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home_rounded,
+                  currentIndex: navigationShell.currentIndex,
+                  onTap: () => _onTabTapped(context, 0),
+                ),
+                _buildNavItem(
+                  context: context,
+                  index: 1,
+                  label: 'Attendance',
+                  icon: Icons.calendar_month_outlined,
+                  activeIcon: Icons.calendar_month,
+                  currentIndex: navigationShell.currentIndex,
+                  onTap: () => _onTabTapped(context, 1),
+                ),
+                _buildNavItem(
+                  context: context,
+                  index: 2,
+                  label: 'Leave',
+                  icon: Icons.description_outlined,
+                  activeIcon: Icons.description,
+                  currentIndex: navigationShell.currentIndex,
+                  onTap: () => _onTabTapped(context, 2),
+                ),
+                _buildNavItem(
+                  context: context,
+                  index: 3,
+                  label: 'Profile',
+                  icon: Icons.person_outline,
+                  activeIcon: Icons.person,
+                  currentIndex: navigationShell.currentIndex,
+                  onTap: () => _onTabTapped(context, 3),
+                ),
+              ],
             ),
           ),
-          CurvedNavigationBarItem(
-            child: Icon(Icons.people_outline, color: getItemColor(1)),
-            label: 'Leads',
-            labelStyle: TextStyle(
-              color: getItemColor(1),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          CurvedNavigationBarItem(
-            child: Icon(Icons.request_quote_outlined, color: getItemColor(2)),
-            label: 'Quotations',
-            labelStyle: TextStyle(
-              color: getItemColor(2),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          CurvedNavigationBarItem(
-            child: Icon(
-              Icons.description_outlined,
-              color: getItemColor(3),
-            ),
-            label: 'Proposals',
-            labelStyle: TextStyle(
-              color: getItemColor(3),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          CurvedNavigationBarItem(
-            child: Icon(Icons.list_alt_outlined, color: getItemColor(4)),
-            label: 'My List',
-            labelStyle: TextStyle(
-              color: getItemColor(4),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-        onTap: (index) async {
-          if (index == navigationShell.currentIndex) {
-            navigationShell.goBranch(
-              index,
-              initialLocation: true,
-            );
-            return;
-          }
-
-          final currentPath = GoRouterState.of(context).uri.path;
-          if (currentPath == '/quotations/create' ||
-              currentPath == '/leads/create') {
-            final confirm = await AppConfirmDialog.show(
-              context,
-              title: 'Discard changes?',
-              message:
-                  'If you leave now, you will lose all the details you have entered.',
-              confirmLabel: 'Discard',
-              cancelLabel: 'Continue',
-              isDestructive: true,
-            );
-
-            if (!confirm) {
-              navigationShell.goBranch(navigationShell.currentIndex);
-              return;
-            }
-          }
-
-          // Trigger refresh for the target branch
-          _triggerRefresh(context, index);
-
-          // Always return to the initial root page when visiting a tab
-          navigationShell.goBranch(
-            index,
-            initialLocation: true,
-          );
-        },
+        ),
       ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required BuildContext context,
+    required int index,
+    required String label,
+    required IconData icon,
+    required IconData activeIcon,
+    required int currentIndex,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = index == currentIndex;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: isSelected
+            ? const EdgeInsets.symmetric(horizontal: 16, vertical: 6)
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFE8F5E9) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected ? const Color(0xFF00632B) : const Color(0xFF94A3B8),
+              size: 24,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFF00632B) : const Color(0xFF64748B),
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onTabTapped(BuildContext context, int index) async {
+    if (index == navigationShell.currentIndex) {
+      navigationShell.goBranch(
+        index,
+        initialLocation: true,
+      );
+      return;
+    }
+
+    if (!context.mounted) return;
+    _triggerRefresh(context, index);
+
+    navigationShell.goBranch(
+      index,
+      initialLocation: true,
     );
   }
 
   void _triggerRefresh(BuildContext context, int index) {
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated || authState.userProfile == null) return;
-
-    final userId = authState.userProfile!.userId;
-
-    // if (index == 0) {
-    //   // Dashboard
-    //   getIt<LeadsCubit>().fetchLeads(userId);
-    //   getIt<PlansCubit>().fetchPlans();
-    // } else if (index == 1) {
-    //   // Leads
-    //   getIt<LeadsCubit>().fetchLeads(userId);
-    // }
   }
 }

@@ -27,7 +27,7 @@ class BranchParams extends Equatable {
 @lazySingleton
 class GetUserProfileUseCase {
   Future<Either<Failure, UserProfile>> call(UserProfileParams params) async {
-    return Right(UserProfile(userId: params.userId, username: 'Pathum', branchIds: const [3]));
+    return Right(UserProfile(userId: params.userId, username: 'Dr. Sanduni', branchIds: const [3]));
   }
 }
 
@@ -128,11 +128,16 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   void setLoggedIn({int? userId}) {
-    emit(AuthLoading());
+    emit(Authenticated(
+      userProfile: UserProfile(
+        userId: userId ?? 1,
+        username: 'Dr. Sanduni',
+        branchIds: const [3],
+      ),
+      branch: const Branch(id: 3, name: 'Main Branch'),
+    ));
     if (userId != null) {
       _fetchUserProfileAndBranch(userId);
-    } else {
-      emit(Authenticated());
     }
   }
 

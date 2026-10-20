@@ -78,8 +78,7 @@ class LoginPage extends StatelessWidget {
                     message: 'Login successful! Welcome back.',
                   );
                 }
-                // Navigation to /dashboard is handled automatically by GoRouter's
-                // refreshListenable once AuthCubit emits Authenticated.
+                context.go('/dashboard');
               } else if (state.status == SubmitStatus.passwordExpired) {
                 // Password is expired — force user to change it before continuing
                 AppSnackBar.warning(
@@ -102,7 +101,9 @@ class LoginPage extends StatelessWidget {
           ),
           BlocListener<AuthCubit, AuthState>(
             listener: (context, state) {
-              if (state is AuthFailure) {
+              if (state is Authenticated) {
+                context.go('/dashboard');
+              } else if (state is AuthFailure) {
                 AppSnackBar.error(
                   context,
                   message: state.message,
@@ -395,8 +396,8 @@ class _LoginViewState extends State<LoginView> {
                                         onPressed: isLoading
                                             ? null
                                             : () => context
-                                            .read<LoginCubit>()
-                                            .submit(),
+                                                .read<LoginCubit>()
+                                                .submit(),
                                         useGradient: true,
                                       );
                                     },

@@ -2,47 +2,38 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:erp_hr/app/view/main_scaffold.dart';
+import 'package:erp_hr/features/attendance/presentation/pages/attendance_page.dart';
 import 'package:erp_hr/features/dashboard/dashboard_page.dart';
-import 'package:erp_hr/features/leads/presentation/create_lead_page.dart';
-import 'package:erp_hr/features/leads/presentation/lead_list_card.dart';
-import 'package:erp_hr/features/leads/presentation/leads_page.dart';
+import 'package:erp_hr/features/leave/presentation/pages/leave_page.dart';
 import 'package:erp_hr/features/login/presentation/blocs/auth_cubit.dart';
 import 'package:erp_hr/features/login/presentation/blocs/auth_state.dart';
 import 'package:erp_hr/features/login/presentation/pages/login_page.dart';
 import 'package:erp_hr/features/profile/presentation/pages/profile_page.dart';
-import 'package:erp_hr/features/quotations/create_quotation.dart';
-import 'package:erp_hr/features/quotations/quotations_page.dart';
 import 'package:erp_hr/features/splash/splash_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorDashBoardKey =
-GlobalKey<NavigatorState>(debugLabel: 'dashboard_shell');
-final _shellNavigatorLeadsKey =
-GlobalKey<NavigatorState>(debugLabel: 'leads_shell');
-final _shellNavigatorQuotationsKey =
-GlobalKey<NavigatorState>(debugLabel: 'quotations_shell');
-
+    GlobalKey<NavigatorState>(debugLabel: 'dashboard_shell');
+final _shellNavigatorAttendanceKey =
+    GlobalKey<NavigatorState>(debugLabel: 'attendance_shell');
+final _shellNavigatorLeaveKey =
+    GlobalKey<NavigatorState>(debugLabel: 'leave_shell');
+final _shellNavigatorProfileKey =
+    GlobalKey<NavigatorState>(debugLabel: 'profile_shell');
 
 class AppRouter extends Equatable {
   static const login = 'login';
   static const profile = 'profile';
   static const settings = 'settings';
   static const dashboard = 'dashboard';
-  static const leads = 'leads';
-  static const quotations = 'quotations';
-  static const proposals = 'proposals';
-  static const myList = 'myList';
-  static const createLead = 'createLead';
-  static const createQuotation = 'createQuotation';
-  static const quotationVersions = 'quotationVersions';
+  static const attendance = 'attendance';
+  static const leave = 'leave';
   static const forgotPassword = 'forgotPassword';
   static const resetPassword = 'resetPassword';
-  static const attendance = 'attendance';
   static const seeAllAppointment = 'seeAllAppointment';
   static const seeAllPendingRenewals = 'seeAllPendingRenewals';
   static const seeAllGracePeriod = 'seeAllGracePeriod';
@@ -57,10 +48,8 @@ class AppRouter extends Equatable {
     profile,
     settings,
     dashboard,
-    leads,
-    quotations,
-    proposals,
-    myList,
+    attendance,
+    leave,
     seeAllAppointment,
     seeAllPendingRenewals,
     seeAllGracePeriod,
@@ -78,7 +67,8 @@ GoRouter router([String? initialLocation, AuthCubit? authCubit]) => GoRouter(
   refreshListenable:
   authCubit != null ? _BlocStreamListenable(authCubit.stream) : null,
   redirect: (context, state) {
-    final authState = context.read<AuthCubit>().state;
+    final authState = authCubit?.state ??
+        (context.mounted ? context.read<AuthCubit>().state : null);
     final location = state.matchedLocation;
 
     final isSplashRoute = location == '/splash';
@@ -93,8 +83,15 @@ GoRouter router([String? initialLocation, AuthCubit? authCubit]) => GoRouter(
     // Let the splash screen run freely – no auth redirect on splash
     if (isSplashRoute) return null;
 
-    // Not logged in → force back to login
-    if (!isLoggedIn && !isAuthLoading && !isLoginRoute && !isAuthRoute) {
+    // Not logged in → force back to login (allow main tabs during UI development)
+    if (!isLoggedIn &&
+        !isAuthLoading &&
+        !isLoginRoute &&
+        !isAuthRoute &&
+        !location.startsWith('/dashboard') &&
+        !location.startsWith('/attendance') &&
+        !location.startsWith('/leave') &&
+        !location.startsWith('/profile')) {
       return '/';
     }
 
@@ -130,12 +127,6 @@ GoRouter router([String? initialLocation, AuthCubit? authCubit]) => GoRouter(
     //     return ResetPasswordPage(accessToken: accessToken);
     //   },
     // ),
-    GoRoute(
-      path: '/profile',
-      name: AppRouter.profile,
-      builder: (context, state) => const ProfilePage(),
-    ),
-    // GoRoute(
     //   path: '/settings',
     //   name: AppRouter.settings,
     //   builder: (context, state) => const SettingsPage(),
@@ -172,66 +163,35 @@ GoRouter router([String? initialLocation, AuthCubit? authCubit]) => GoRouter(
           ],
         ),
         StatefulShellBranch(
-          navigatorKey: _shellNavigatorLeadsKey,
+          navigatorKey: _shellNavigatorAttendanceKey,
           routes: [
             GoRoute(
-              path: '/leads',
-              name: AppRouter.leads,
-              builder: (context, state) => const LeadsPage(),
-              routes: [
-                GoRoute(
-                  path: 'create',
-                  name: AppRouter.createLead,
-                  builder: (context, state) {
-                    final extra = state.extra as Map<String, dynamic>?;
-                    return CreateLeadPage(initialData: extra);
-                  },
-                ),
-              ],
+              path: '/attendance',
+              name: AppRouter.attendance,
+              builder: (context, state) => const AttendancePage(),
             ),
           ],
         ),
         StatefulShellBranch(
-          navigatorKey: _shellNavigatorQuotationsKey,
+          navigatorKey: _shellNavigatorLeaveKey,
           routes: [
             GoRoute(
-              path: '/quotations',
-              name: AppRouter.quotations,
-              builder: (context, state) => const QuotationsPage(),
-              routes: [
-                GoRoute(
-                  path: 'create',
-                  name: AppRouter.createQuotation,
-                  builder: (context, state) {
-                    final extra = state.extra as Map<String, dynamic>?;
-                    final lead = extra?['lead'] as MockLead?;
-                    return QuotationFormPage();
-                  },
-                ),
-              ],
+              path: '/leave',
+              name: AppRouter.leave,
+              builder: (context, state) => const LeavePage(),
             ),
           ],
         ),
-        // StatefulShellBranch(
-        //   navigatorKey: _shellNavigatorProposalsKey,
-        //   routes: [
-        //     GoRoute(
-        //       path: '/proposals',
-        //       name: AppRouter.proposals,
-        //       builder: (context, state) => const ProposalsPage(),
-        //     ),
-        //   ],
-        // ),
-        // StatefulShellBranch(
-        //   navigatorKey: _shellNavigatorMyListKey,
-        //   routes: [
-        //     GoRoute(
-        //       path: '/mylist',
-        //       name: AppRouter.myList,
-        //       builder: (context, state) => const MyListPage(),
-        //     ),
-        //   ],
-        // ),
+        StatefulShellBranch(
+          navigatorKey: _shellNavigatorProfileKey,
+          routes: [
+            GoRoute(
+              path: '/profile',
+              name: AppRouter.profile,
+              builder: (context, state) => const ProfilePage(),
+            ),
+          ],
+        ),
       ],
     ),
   ],
