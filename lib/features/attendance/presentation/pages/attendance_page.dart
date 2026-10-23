@@ -186,6 +186,7 @@ class _AttendancePageState extends State<AttendancePage> {
     var tempYear = _currentMonth.year;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
@@ -209,9 +210,10 @@ class _AttendancePageState extends State<AttendancePage> {
             ];
             return Padding(
               padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                   Container(
                     width: 40.w,
                     height: 4.h,
@@ -296,11 +298,12 @@ class _AttendancePageState extends State<AttendancePage> {
                   ),
                 ],
               ),
-            );
-          },
-        );
-      },
-    );
+            ),
+          );
+        },
+      );
+    },
+  );
   }
 
   @override

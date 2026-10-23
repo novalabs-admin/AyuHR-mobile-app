@@ -127,21 +127,33 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  void setLoggedIn({int? userId}) {
-    emit(Authenticated(
-      userProfile: UserProfile(
-        userId: userId ?? 1,
-        username: 'Dr. Sanduni',
-        branchIds: const [3],
+  void setLoggedIn({int? userId, String? username}) {
+    final displayName = (username != null && username.trim().isNotEmpty)
+        ? (username.trim().toLowerCase() == 'akila' ? 'Akila' : username.trim())
+        : 'Akila';
+
+    final profile = UserProfile(
+      userId: userId ?? 1,
+      username: displayName,
+      branchIds: const [3],
+    );
+    const branch = Branch(id: 3, name: 'Ayu Lanka Medical');
+
+    emit(
+      Authenticated(
+        userProfile: profile,
+        branch: branch,
       ),
-      branch: const Branch(id: 3, name: 'Main Branch'),
-    ));
-    if (userId != null) {
-      _fetchUserProfileAndBranch(userId);
-    }
+    );
+
+    // Save mock session locally for offline presentation
+    _localStorage
+      ..setAccessToken('mock_presentation_access_token')
+      ..setUserId(userId ?? 1);
   }
 
   void setLoggedOut() {
+    _localStorage.clearTokens();
     emit(Unauthenticated());
   }
 

@@ -1,3 +1,4 @@
+import 'package:erp_hr/core/utils/colors.dart';
 import 'package:erp_hr/core/utils/enums.dart';
 import 'package:erp_hr/core/utils/spacing.dart';
 import 'package:erp_hr/core/utils/text_styles.dart';
@@ -5,6 +6,7 @@ import 'package:erp_hr/features/login/presentation/blocs/auth_cubit.dart';
 import 'package:erp_hr/features/login/presentation/blocs/auth_state.dart';
 import 'package:erp_hr/features/login/presentation/blocs/login_cubit.dart';
 import 'package:erp_hr/features/login/presentation/blocs/login_state.dart';
+import 'package:erp_hr/injector.dart';
 import 'package:erp_hr/shared/widget/app_button.dart';
 import 'package:erp_hr/shared/widget/app_snack_bar.dart';
 import 'package:erp_hr/shared/widget/app_text_field.dart';
@@ -12,24 +14,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:erp_hr/core/utils/colors.dart';
-import 'package:erp_hr/injector.dart';
-
-// ─────────────────────────────────────────────────────────────────────────
-// NOTE ON THIS PASS:
-// Only the VISUAL TREE inside LoginView.build() changed to match the new
-// web design (hero banner image + rounded white card overlapping it,
-// green gradient LOG IN button, footer copyright line).
-//
-// Everything below is UNCHANGED from your working version:
-//   • BlocProvider / MultiBlocListener wiring in LoginPage
-//   • LoginCubit.usernameChanged / passwordChanged / rememberMeToggled / submit
-//   • AuthCubit.setLoggedIn
-//   • All BlocListener / BlocBuilder logic, buildWhen/listenWhen conditions
-//   • _usernameController and its lifecycle
-//   • Validators / errorText wiring (state.username.displayError, etc.)
-//   • Navigation calls (context.go / context.push)
-// ─────────────────────────────────────────────────────────────────────────
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -45,56 +29,14 @@ class LoginPage extends StatelessWidget {
             listener: (context, state) {
               if (state.status == SubmitStatus.success) {
                 context.read<AuthCubit>().setLoggedIn(
-                  userId: state.user?.userProfileId,
-                );
-                if (state.user?.isPasswordExpiringSoon ?? false) {
-                  final now = DateTime.now();
-                  final today = DateTime(now.year, now.month, now.day);
-                  final expiry = state.user!.passwordExpiryDate.toLocal();
-                  final expiryDate =
-                  DateTime(expiry.year, expiry.month, expiry.day);
-                  final diff = expiryDate.difference(today).inDays;
-
-                  String message;
-                  if (diff <= 0) {
-                    message =
-                    'Your password expires today! Please change it immediately.';
-                  } else if (diff == 1) {
-                    message =
-                    'Your password will expire tomorrow! Please change it soon.';
-                  } else {
-                    message =
-                    'Your password will expire in $diff days. Please change it soon.';
-                  }
-
-                  AppSnackBar.warning(
-                    context,
-                    message: message,
-                    duration: const Duration(seconds: 6),
-                  );
-                } else {
-                  AppSnackBar.success(
-                    context,
-                    message: 'Login successful! Welcome back.',
-                  );
-                }
+                      userId: state.user?.userProfileId ?? 1,
+                    );
                 context.go('/dashboard');
-              } else if (state.status == SubmitStatus.passwordExpired) {
-                // Password is expired — force user to change it before continuing
-                AppSnackBar.warning(
-                  context,
-                  message:
-                  'Your password has expired. Please set a new password.',
-                );
-                context.go(
-                  '/reset-password',
-                  extra: state.user?.accessToken,
-                );
               } else if (state.status == SubmitStatus.failure) {
                 AppSnackBar.error(
                   context,
                   message:
-                  state.errorMessage ?? 'Invalid username or password.',
+                      state.errorMessage ?? 'Invalid username or password.',
                 );
               }
             },
@@ -103,11 +45,6 @@ class LoginPage extends StatelessWidget {
             listener: (context, state) {
               if (state is Authenticated) {
                 context.go('/dashboard');
-              } else if (state is AuthFailure) {
-                AppSnackBar.error(
-                  context,
-                  message: state.message,
-                );
               }
             },
           ),
@@ -126,21 +63,48 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
-  final TextEditingController _usernameController = TextEditingController();
+  late final TextEditingController _usernameController;
+  late final TextEditingController _passwordController;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameController = TextEditingController(text: 'akila');
+    _passwordController = TextEditingController(text: '1234');
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleSimpleTouchLogin() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
+    // Smooth UI presentation delay (simulating authentic login with zero API calls)
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
+
+    // Set mock authenticated state
+    final username = _usernameController.text.trim();
+    context.read<AuthCubit>().setLoggedIn(
+          userId: 1,
+          username: username.isNotEmpty ? username : 'akila',
+        );
+
+    if (mounted) {
+      context.go('/dashboard');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final screenHeight = MediaQuery.of(context).size.height;
-
-    // Hero banner height — big enough to feel like the web's left panel,
-    // small enough to leave room for the form on a phone screen.
     final bannerHeight = (screenHeight * 0.30).clamp(200.0, 280.0).h;
 
     return Scaffold(
@@ -148,8 +112,6 @@ class _LoginViewState extends State<LoginView> {
       body: Stack(
         children: [
           // ── Hero banner image (top) ──
-          // TODO: point this at your actual ayurvedic banner asset
-          // (herbs / mortar & pestle image from the web design).
           Positioned(
             top: 0,
             left: 0,
@@ -166,8 +128,6 @@ class _LoginViewState extends State<LoginView> {
             bottom: false,
             child: Column(
               children: [
-                // Spacer so the card below starts partway down the banner,
-                // creating the overlap look from the web design.
                 SizedBox(height: bannerHeight - 24.h),
 
                 // ── White rounded card (form) ──
@@ -226,7 +186,6 @@ class _LoginViewState extends State<LoginView> {
 
                                 Gap.v8,
 
-                                // Small accent underline, matching the web design
                                 Container(
                                   width: 36.w,
                                   height: 3.h,
@@ -239,61 +198,35 @@ class _LoginViewState extends State<LoginView> {
                                 Gap.v24,
 
                                 // ── Username field ──
-                                BlocListener<LoginCubit, LoginState>(
-                                  listenWhen: (p, c) =>
-                                  p.username.value != c.username.value &&
-                                      c.username.value.isNotEmpty &&
-                                      _usernameController.text.isEmpty,
-                                  listener: (context, state) {
-                                    _usernameController.text =
-                                        state.username.value;
-                                  },
-                                  child: BlocBuilder<LoginCubit, LoginState>(
-                                    buildWhen: (p, c) => p.username != c.username,
-                                    builder: (context, state) {
-                                      return AppTextField(
-                                        controller: _usernameController,
-                                        label: 'Username',
-                                        hint: 'Enter your username',
-                                        errorText:
-                                        state.username.displayError != null
-                                            ? 'Username is required'
-                                            : null,
-                                        filled: true,
-                                        borderRadius: 14.r,
-                                        onChanged: context
-                                            .read<LoginCubit>()
-                                            .usernameChanged,
-                                        textInputAction: TextInputAction.next,
-                                      );
-                                    },
-                                  ),
+                                AppTextField(
+                                  controller: _usernameController,
+                                  label: 'Username',
+                                  hint: 'Enter your username',
+                                  filled: true,
+                                  borderRadius: 14.r,
+                                  onChanged: context
+                                      .read<LoginCubit>()
+                                      .usernameChanged,
+                                  textInputAction: TextInputAction.next,
+                                  onSubmitted: (_) =>
+                                      _handleSimpleTouchLogin(),
                                 ),
 
                                 Gap.v16,
 
                                 // ── Password field ──
-                                BlocBuilder<LoginCubit, LoginState>(
-                                  buildWhen: (p, c) => p.password != c.password,
-                                  builder: (context, state) {
-                                    return AppTextField(
-                                      label: 'Password',
-                                      hint: 'Enter your password',
-                                      errorText:
-                                      state.password.displayError != null
-                                          ? 'Password is required'
-                                          : null,
-                                      isPassword: true,
-                                      filled: true,
-                                      borderRadius: 14.r,
-                                      onChanged: context
-                                          .read<LoginCubit>()
-                                          .passwordChanged,
-                                      textInputAction: TextInputAction.done,
-                                      onSubmitted: (_) =>
-                                          context.read<LoginCubit>().submit(),
-                                    );
-                                  },
+                                AppTextField(
+                                  controller: _passwordController,
+                                  label: 'Password',
+                                  hint: 'Enter your password',
+                                  isPassword: true,
+                                  filled: true,
+                                  borderRadius: 14.r,
+                                  onChanged: context
+                                      .read<LoginCubit>()
+                                      .passwordChanged,
+                                  textInputAction: TextInputAction.done,
+                                  onSubmitted: (_) => _handleSimpleTouchLogin(),
                                 ),
 
                                 Gap.v12,
@@ -301,11 +234,11 @@ class _LoginViewState extends State<LoginView> {
                                 // ── Remember me / Forgot password ──
                                 BlocBuilder<LoginCubit, LoginState>(
                                   buildWhen: (p, c) =>
-                                  p.rememberMe != c.rememberMe,
+                                      p.rememberMe != c.rememberMe,
                                   builder: (context, state) {
                                     return Row(
                                       mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Expanded(
                                           child: Row(
@@ -319,7 +252,8 @@ class _LoginViewState extends State<LoginView> {
                                                       .read<LoginCubit>()
                                                       .rememberMeToggled(),
                                                   activeColor: AppColor.primary,
-                                                  shape: RoundedRectangleBorder(
+                                                  shape:
+                                                      RoundedRectangleBorder(
                                                     borderRadius: AppRadius.r4,
                                                   ),
                                                 ),
@@ -328,10 +262,11 @@ class _LoginViewState extends State<LoginView> {
                                               Flexible(
                                                 child: Text(
                                                   'Remember Me',
-                                                  style: AppTextStyle.bodyMedium
+                                                  style: AppTextStyle
+                                                      .bodyMedium
                                                       .withColor(cs.onSurface),
                                                   overflow:
-                                                  TextOverflow.ellipsis,
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                             ],
@@ -366,48 +301,27 @@ class _LoginViewState extends State<LoginView> {
                           ),
                         ),
 
-                        // ── Bottom: LOG IN button + footer ──
+                        // ── Bottom: LOG IN button (Simple Touch Navigation) + footer ──
                         Padding(
                           padding: AppPadding.fromLTRB(20, 8, 20, 16),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // ── Green gradient LOG IN button ──
-                              BlocBuilder<AuthCubit, AuthState>(
-                                builder: (context, authState) {
-                                  return BlocBuilder<LoginCubit, LoginState>(
-                                    buildWhen: (p, c) => p.status != c.status,
-                                    builder: (context, loginState) {
-                                      // Keep button in loading state during both
-                                      // the login API call AND the subsequent
-                                      // profile-fetch phase.
-                                      final isLoading = loginState.status ==
-                                          SubmitStatus.loading ||
-                                          authState is AuthLoading;
-
-                                      return AppButton(
-                                        label: 'LOG IN',
-                                        isLoading: isLoading,
-                                        backgroundColor: AppColor.primaryDark,
-                                        foregroundColor: AppColor.primaryLight,
-                                        borderRadius: 30.r,
-                                        height: 52.h,
-                                        fontSize: 16.sp,
-                                        onPressed: isLoading
-                                            ? null
-                                            : () => context
-                                                .read<LoginCubit>()
-                                                .submit(),
-                                        useGradient: true,
-                                      );
-                                    },
-                                  );
-                                },
+                              AppButton(
+                                label: 'LOG IN',
+                                backgroundColor: AppColor.primaryDark,
+                                foregroundColor: AppColor.primaryLight,
+                                borderRadius: 30.r,
+                                height: 52.h,
+                                fontSize: 16.sp,
+                                isLoading: _isLoading,
+                                onPressed:
+                                    _isLoading ? null : _handleSimpleTouchLogin,
+                                useGradient: true,
                               ),
 
                               Gap.v12,
 
-                              // ── Footer copyright ──
                               Text(
                                 '© ${DateTime.now().year} Ayu lanka Medical Pvt Ltd. All rights reserved.',
                                 textAlign: TextAlign.center,

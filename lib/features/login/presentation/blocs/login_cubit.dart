@@ -70,25 +70,25 @@ class LoginCubit extends Cubit<LoginState> {
     );
 
     // ─────────────────────────────────────────────────────────────────────────
-    // UI DEVELOPMENT MODE: Bypass remote API call
-    // Simulates a quick loading state and emits a mock authenticated user.
+    // UI PRESENTATION MODE: Zero remote API calls
+    // Simulates a smooth loading state and emits Dr. Sanduni Perera's profile.
     // ─────────────────────────────────────────────────────────────────────────
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+    await Future<void>.delayed(const Duration(milliseconds: 350));
     if (isClosed) return;
 
     final usernameValue = state.username.value.isNotEmpty
         ? state.username.value
-        : 'Pathum';
+        : 'akila';
 
     final mockUser = UserModel(
       userProfileId: 1,
       username: usernameValue,
-      email: 'user@ayulanka.com',
+      email: 'akila@ayulanka.com',
       contactNo: '0771234567',
-      firstname: 'Pathum',
-      lastname: 'Fernando',
+      firstname: 'Akila',
+      lastname: '',
       companyId: 1,
-      accessToken: 'mock_access_token',
+      accessToken: 'mock_presentation_access_token',
       passwordExpiryDate: DateTime(2030, 12, 31),
       isPasswordExpiringSoon: false,
     );
@@ -96,6 +96,8 @@ class LoginCubit extends Cubit<LoginState> {
     if (state.rememberMe) {
       await _localStorage.setSavedUsername(state.username.value);
     }
+    await _localStorage.setAccessToken(mockUser.accessToken);
+    await _localStorage.setUserId(mockUser.userProfileId);
 
     emit(
       state.copyWith(
@@ -104,51 +106,5 @@ class LoginCubit extends Cubit<LoginState> {
         clearError: true,
       ),
     );
-
-    /*
-    // REAL BACKEND API CALL (Uncomment when backend login endpoint is ready):
-    final result = await _useCase(
-      LoginParams(username: username.value, password: password.value),
-    );
-
-    if (isClosed) return;
-
-    result.fold(
-      (failure) {
-        final message = switch (failure) {
-          LocalFailure(:final message) => message,
-          ServerFailure(:final message) => message,
-        };
-        emit(
-          state.copyWith(
-            status: SubmitStatus.failure,
-            errorMessage: message,
-          ),
-        );
-      },
-      (user) {
-        if (state.rememberMe) {
-          _localStorage.setSavedUsername(state.username.value);
-        }
-
-        final now = DateTime.now();
-        final isActuallyExpired = user.passwordExpiryDate.isBefore(now);
-
-        if (isActuallyExpired) {
-          emit(state.copyWith(
-            status: SubmitStatus.passwordExpired,
-            user: user,
-            clearError: true,
-          ));
-        } else {
-          emit(state.copyWith(
-            status: SubmitStatus.success,
-            user: user,
-            clearError: true,
-          ));
-        }
-      },
-    );
-    */
   }
 }

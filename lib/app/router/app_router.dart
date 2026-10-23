@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:erp_hr/app/view/main_scaffold.dart';
 import 'package:erp_hr/features/attendance/presentation/pages/attendance_page.dart';
 import 'package:erp_hr/features/dashboard/dashboard_page.dart';
+import 'package:erp_hr/features/leave/presentation/pages/apply_leave_page.dart';
 import 'package:erp_hr/features/leave/presentation/pages/leave_page.dart';
 import 'package:erp_hr/features/login/presentation/blocs/auth_cubit.dart';
 import 'package:erp_hr/features/login/presentation/blocs/auth_state.dart';
@@ -83,7 +84,8 @@ GoRouter router([String? initialLocation, AuthCubit? authCubit]) => GoRouter(
     // Let the splash screen run freely – no auth redirect on splash
     if (isSplashRoute) return null;
 
-    // Not logged in → force back to login (allow main tabs during UI development)
+    // Not logged in → force back to login
+    // (allow main tabs during UI development)
     if (!isLoggedIn &&
         !isAuthLoading &&
         !isLoginRoute &&
@@ -95,10 +97,8 @@ GoRouter router([String? initialLocation, AuthCubit? authCubit]) => GoRouter(
       return '/';
     }
 
-    // Logged in → redirect away from login page to dashboard
-    if (isLoggedIn && isLoginRoute) {
-      return '/dashboard';
-    }
+    // Hot restart lands directly on login page as requested.
+    // Tapping Log In will explicitly navigate to /dashboard.
 
     return null;
   },
@@ -179,6 +179,13 @@ GoRouter router([String? initialLocation, AuthCubit? authCubit]) => GoRouter(
               path: '/leave',
               name: AppRouter.leave,
               builder: (context, state) => const LeavePage(),
+              routes: [
+                GoRoute(
+                  path: 'apply',
+                  name: 'applyLeave',
+                  builder: (context, state) => const ApplyLeavePage(),
+                ),
+              ],
             ),
           ],
         ),
